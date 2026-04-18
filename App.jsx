@@ -1,8 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import './App.css';
+const { useState, useEffect } = React;
 
 // 动态调整地图中心的组件
 function ChangeView({ center }) {
@@ -68,3 +64,5 @@ function App() {
 }
 
 export default App;
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
