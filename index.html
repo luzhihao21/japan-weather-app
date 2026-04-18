@@ -3,24 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日本天气 & 穿衣指南</title>
+    <title>日本天气 & 智能地图</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/react-leaflet/lib/index.js"></script>
+
     <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(135deg, #e0f2f1 0%, #e8eaf6 100%); margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .app-container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 400px; text-align: center; }
-        h1 { color: #2c3e50; font-size: 24px; margin-bottom: 20px; }
-        .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
-        input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 10px; outline: none; transition: border-color 0.3s; }
-        input:focus { border-color: #5c6bc0; }
-        button { padding: 10px 20px; background: #5c6bc0; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #3f51b5; }
-        .weather-info { margin-top: 25px; animation: fadeIn 0.5s ease-out; }
-        .temp { font-size: 48px; font-weight: bold; color: #303f9f; margin: 10px 0; }
-        .advice-card { background: #fff9c4; padding: 15px; border-radius: 12px; margin-top: 20px; border-left: 5px solid #fbc02d; text-align: left; }
-        .advice-header { font-weight: bold; color: #827717; margin-bottom: 5px; display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        body { font-family: sans-serif; background: #f0f4f8; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .app-card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
+        .search-row { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 10px; }
+        button { padding: 10px 20px; background: #5c6bc0; color: white; border: none; border-radius: 10px; cursor: pointer; }
+        #map { height: 250px; width: 100%; border-radius: 15px; margin-top: 20px; border: 1px solid #eee; }
+        .advice { background: #fff9c4; padding: 15px; border-radius: 12px; margin-top: 15px; text-align: left; border-left: 5px solid #fbc02d; }
     </style>
 </head>
 <body>
@@ -28,63 +27,58 @@
 
     <script type="text/babel">
         const { useState, useEffect } = React;
+        // 关键补丁：从全局获取地图组件
+        const { MapContainer, TileLayer, Marker, useMap } = window.ReactLeaflet;
+
+        // 让地图跟着城市跑的小组件
+        function RecenterMap({ coords }) {
+            const map = useMap();
+            useEffect(() => { map.setView(coords, 10); }, [coords]);
+            return null;
+        }
 
         function App() {
             const [city, setCity] = useState('Tokyo');
             const [weather, setWeather] = useState(null);
-            const [loading, setLoading] = useState(false);
+            const [pos, setPos] = useState([35.6895, 139.6917]); // 默认东京坐标
+            const API_KEY = '849b380f2d4f8f4118f77103e5c949d2'; // 请确认这是你发回来的那个有效Key
 
-            // 请确保这里填入你正确的 API Key
-            const API_KEY = '46b039e5a1e9a26ee496fae918a02946'; 
-
-            const fetchWeather = async (cityName) => {
-                setLoading(true);
-                try {
-                    const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=${API_KEY}&units=metric&lang=ja`);
-                    const data = await res.json();
-                    if (data.cod === 200) {
-                        setWeather(data);
-                    } else {
-                        alert("城市名没找到哦，请试着用英文输入（如 Osaka）");
-                    }
-                } catch (err) {
-                    alert("网络好像有点问题");
+            const search = async (name) => {
+                const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${name}&appid=${API_KEY}&units=metric&lang=ja`);
+                const data = await res.json();
+                if(data.cod === 200) {
+                    setWeather(data);
+                    setPos([data.coord.lat, data.coord.lon]);
                 }
-                setLoading(false);
             };
 
-            useEffect(() => { fetchWeather('Tokyo'); }, []);
-
-            const getAdvice = (temp) => {
-                if (temp >= 25) return "建议穿短袖，带上遮阳伞 👕。日差しが強いので日焼け止めも忘れずに！";
-                if (temp >= 15) return "建议穿薄外套或长袖衬衫 🧥。朝晩は冷えるので羽織るものがあると安心です。";
-                if (temp >= 5) return "天气较冷，请注意保暖 🧣。コートやマフラーを準備しましょう。";
-                return "非常冷！请穿羽绒服 ❄️。ヒートテックと厚手のダウンが必要です。";
-            };
+            useEffect(() => { search('Tokyo'); }, []);
 
             return (
-                <div className="app-container">
-                    <h1>🇯🇵 日本天气导航</h1>
-                    
-                    <div className="search-box">
-                        <input 
-                            type="text" 
-                            placeholder="输入城市拼音 (如: Kyoto)" 
-                            onKeyDown={(e) => e.key === 'Enter' && fetchWeather(e.target.value)}
-                            onChange={(e) => setCity(e.target.value)}
-                        />
-                        <button onClick={() => fetchWeather(city)}>検索</button>
+                <div className="app-card">
+                    <h2>🇯🇵 日本天气 & 穿衣地图</h2>
+                    <div className="search-row">
+                        <input value={city} onChange={e => setCity(e.target.value)} placeholder="Enter city (e.g. Osaka)" />
+                        <button onClick={() => search(city)}>検索</button>
                     </div>
 
-                    {loading ? <p>読み込み中...</p> : weather && (
-                        <div className="weather-info">
-                            <h2 style={{margin: 0}}>{weather.name}</h2>
-                            <p style={{color: '#666'}}>{weather.weather[0].description}</p>
-                            <div className="temp">{Math.round(weather.main.temp)}°C</div>
+                    {weather && (
+                        <div>
+                            <h3>{weather.name} · {weather.main.temp}°C</h3>
+                            <p>{weather.weather[0].description}</p>
                             
-                            <div className="advice-card">
-                                <span className="advice-header">💡 今日の服装アドバイス:</span>
-                                <div>{getAdvice(weather.main.temp)}</div>
+                            <div className="advice">
+                                <strong>💡 服装建议：</strong>
+                                <p>{weather.main.temp > 20 ? "穿件衬衫就行 👕" : "得穿外套了 🧥"}</p>
+                            </div>
+
+                            {/* 地图组件 */}
+                            <div id="map">
+                                <MapContainer center={pos} zoom={10} style={{height: '100%', width: '100%', borderRadius: '15px'}}>
+                                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                                    <Marker position={pos} />
+                                    <RecenterMap coords={pos} />
+                                </MapContainer>
                             </div>
                         </div>
                     )}
