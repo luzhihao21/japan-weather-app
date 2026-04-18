@@ -50,13 +50,6 @@ function App() {
         )}
 
         <div id="map-container">
-          <MapContainer center={pos} zoom={7} scrollWheelZoom={false} style={{ height: "300px", width: "100%", borderRadius: "15px" }}>
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <ChangeView center={pos} />
-            <Marker position={pos}>
-               {/* 这里可以通过CSS给Marker加跳动效果 */}
-            </Marker>
-          </MapContainer>
         </div>
       </div>
     </div>
