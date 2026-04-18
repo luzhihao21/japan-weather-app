@@ -13,77 +13,104 @@
     <script src="https://unpkg.com/react-leaflet/lib/index.js"></script>
 
     <style>
-        body { font-family: sans-serif; background: #f0f4f8; margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .app-card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
-        .search-row { display: flex; gap: 10px; margin-bottom: 20px; }
-        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 10px; }
-        button { padding: 10px 20px; background: #5c6bc0; color: white; border: none; border-radius: 10px; cursor: pointer; }
-        #map { height: 250px; width: 100%; border-radius: 15px; margin-top: 20px; border: 1px solid #eee; }
-        .advice { background: #fff9c4; padding: 15px; border-radius: 12px; margin-top: 15px; text-align: left; border-left: 5px solid #fbc02d; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f7fa; margin: 0; padding: 15px; display: flex; justify-content: center; }
+        .app-card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; }
+        .search-row { display: flex; gap: 8px; margin-bottom: 15px; }
+        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 12px; font-size: 16px; outline: none; }
+        button { padding: 10px 18px; background: #5c6bc0; color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; }
+        #map-container { height: 200px; width: 100%; border-radius: 15px; margin-top: 15px; overflow: hidden; border: 1px solid #eee; }
+        .advice-box { background: #fff9c4; padding: 12px; border-radius: 12px; margin-top: 15px; text-align: left; border-left: 5px solid #fbc02d; font-size: 14px; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
-        // 关键补丁：从全局获取地图组件
-        const { MapContainer, TileLayer, Marker, useMap } = window.ReactLeaflet;
-
-        // 让地图跟着城市跑的小组件
-        function RecenterMap({ coords }) {
-            const map = useMap();
-            useEffect(() => { map.setView(coords, 10); }, [coords]);
-            return null;
-        }
+        const { useState, useEffect, useRef } = React;
 
         function App() {
             const [city, setCity] = useState('Tokyo');
             const [weather, setWeather] = useState(null);
-            const [pos, setPos] = useState([35.6895, 139.6917]); // 默认东京坐标
-            const API_KEY = '849b380f2d4f8f4118f77103e5c949d2'; // 请确认这是你发回来的那个有效Key
+            const [pos, setPos] = useState([35.6895, 139.6917]);
+            const [mapReady, setMapReady] = useState(false);
+            
+            // 🛑 重要：把这里换成你查成功的那个 API KEY 字符串
+            const API_KEY = '46b039e5a1e9a26ee496fae918a02946'; 
+
+            // 检查地图组件是否加载成功的安全机制
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    if (window.ReactLeaflet) setMapReady(true);
+                }, 500);
+                return () => clearTimeout(timer);
+            }, []);
 
             const search = async (name) => {
-                const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${name}&appid=${API_KEY}&units=metric&lang=ja`);
-                const data = await res.json();
-                if(data.cod === 200) {
-                    setWeather(data);
-                    setPos([data.coord.lat, data.coord.lon]);
-                }
+                try {
+                    const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${name}&appid=${API_KEY}&units=metric&lang=ja`);
+                    const data = await res.json();
+                    if(data.cod === 200) {
+                        setWeather(data);
+                        setPos([data.coord.lat, data.coord.lon]);
+                    }
+                } catch (err) { console.error(err); }
             };
 
             useEffect(() => { search('Tokyo'); }, []);
 
+            // 穿衣逻辑
+            const getAdvice = (t) => {
+                if (t >= 25) return "建议穿短袖 👕。日差しが強いです！";
+                if (t >= 15) return "穿薄外套比较合适 🧥。過ごしやすい天気ですね。";
+                return "天气冷，穿厚一点 🧣。しっかり防寒してください。";
+            };
+
             return (
                 <div className="app-card">
-                    <h2>🇯🇵 日本天气 & 穿衣地图</h2>
+                    <h2 style={{margin: '0 0 15px 0', color: '#333'}}>🇯🇵 天气 & 智能地图</h2>
                     <div className="search-row">
-                        <input value={city} onChange={e => setCity(e.target.value)} placeholder="Enter city (e.g. Osaka)" />
+                        <input value={city} onChange={e => setCity(e.target.value)} placeholder="输入城市名 (如 Osaka)" />
                         <button onClick={() => search(city)}>検索</button>
                     </div>
 
                     {weather && (
                         <div>
-                            <h3>{weather.name} · {weather.main.temp}°C</h3>
-                            <p>{weather.weather[0].description}</p>
+                            <div style={{fontSize: '20px', fontWeight: 'bold'}}>{weather.name}</div>
+                            <div style={{fontSize: '36px', color: '#3f51b5', margin: '5px 0'}}>{Math.round(weather.main.temp)}°C</div>
+                            <div style={{color: '#666'}}>{weather.weather[0].description}</div>
                             
-                            <div className="advice">
-                                <strong>💡 服装建议：</strong>
-                                <p>{weather.main.temp > 20 ? "穿件衬衫就行 👕" : "得穿外套了 🧥"}</p>
+                            <div className="advice-box">
+                                <strong>💡 服装アドバイス:</strong>
+                                <p style={{margin: '5px 0 0 0'}}>{getAdvice(weather.main.temp)}</p>
                             </div>
 
-                            {/* 地图组件 */}
-                            <div id="map">
-                                <MapContainer center={pos} zoom={10} style={{height: '100%', width: '100%', borderRadius: '15px'}}>
-                                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                                    <Marker position={pos} />
-                                    <RecenterMap coords={pos} />
-                                </MapContainer>
+                            <div id="map-container">
+                                {mapReady && window.ReactLeaflet && (
+                                    <window.ReactLeaflet.MapContainer 
+                                        center={pos} 
+                                        zoom={10} 
+                                        style={{height: '100%', width: '100%'}}
+                                        scrollWheelZoom={false}
+                                    >
+                                        <window.ReactLeaflet.TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                                        <window.ReactLeaflet.Marker position={pos} />
+                                        <MapTracker coords={pos} />
+                                    </window.ReactLeaflet.MapContainer>
+                                )}
                             </div>
                         </div>
                     )}
                 </div>
             );
+        }
+
+        // 地图跟随城市移动的逻辑
+        function MapTracker({ coords }) {
+            const map = window.ReactLeaflet.useMap();
+            useEffect(() => {
+                map.setView(coords, 10);
+            }, [coords]);
+            return null;
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
