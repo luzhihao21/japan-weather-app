@@ -8,6 +8,19 @@
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script src="https://unpkg.com/react-leaflet/lib/index.js"></script>
+
+<script>
+  // 这行代码把全局的 Leaflet 映射给 React 使用
+  window.MapContainer = window.ReactLeaflet.MapContainer;
+  window.TileLayer = window.ReactLeaflet.TileLayer;
+  window.Marker = window.ReactLeaflet.Marker;
+  window.Popup = window.ReactLeaflet.Popup;
+</script>
 </head>
 <body>
     <div id="root"></div>
