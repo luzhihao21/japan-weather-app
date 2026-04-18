@@ -3,33 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>天气导航</title>
+    <title>日本天气 & 穿衣指南</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        /* 这里放你 App.css 里的样式，可以直接把 App.css 内容贴进来 */
-        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; }
-        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(135deg, #e0f2f1 0%, #e8eaf6 100%); margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .app-container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 400px; text-align: center; }
+        h1 { color: #2c3e50; font-size: 24px; margin-bottom: 20px; }
+        .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 10px; outline: none; transition: border-color 0.3s; }
+        input:focus { border-color: #5c6bc0; }
+        button { padding: 10px 20px; background: #5c6bc0; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #3f51b5; }
+        .weather-info { margin-top: 25px; animation: fadeIn 0.5s ease-out; }
+        .temp { font-size: 48px; font-weight: bold; color: #303f9f; margin: 10px 0; }
+        .advice-card { background: #fff9c4; padding: 15px; border-radius: 12px; margin-top: 20px; border-left: 5px solid #fbc02d; text-align: left; }
+        .advice-header { font-weight: bold; color: #827717; margin-bottom: 5px; display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        // 直接在这里写 React 逻辑，避开所有文件引用问题
         const { useState, useEffect } = React;
 
         function App() {
-            const [weather, setWeather] = useState("正在加载中...");
+            const [city, setCity] = useState('Tokyo');
+            const [weather, setWeather] = useState(null);
+            const [loading, setLoading] = useState(false);
 
-            // 这是一个最简演示，确保网页能亮起来
+            // 请确保这里填入你正确的 API Key
+            const API_KEY = '849b380f2d4f8f4118f77103e5c949d2'; 
+
+            const fetchWeather = async (cityName) => {
+                setLoading(true);
+                try {
+                    const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=${API_KEY}&units=metric&lang=ja`);
+                    const data = await res.json();
+                    if (data.cod === 200) {
+                        setWeather(data);
+                    } else {
+                        alert("城市名没找到哦，请试着用英文输入（如 Osaka）");
+                    }
+                } catch (err) {
+                    alert("网络好像有点问题");
+                }
+                setLoading(false);
+            };
+
+            useEffect(() => { fetchWeather('Tokyo'); }, []);
+
+            const getAdvice = (temp) => {
+                if (temp >= 25) return "建议穿短袖，带上遮阳伞 👕。日差しが強いので日焼け止めも忘れずに！";
+                if (temp >= 15) return "建议穿薄外套或长袖衬衫 🧥。朝晩は冷えるので羽織るものがあると安心です。";
+                if (temp >= 5) return "天气较冷，请注意保暖 🧣。コートやマフラーを準備しましょう。";
+                return "非常冷！请穿羽绒服 ❄️。ヒートテックと厚手のダウンが必要です。";
+            };
+
             return (
-                <div className="container">
-                    <h1>こんにちは！天气导航正在运行</h1>
-                    <p>状态：{weather}</p>
-                    <p>如果看到这段话，说明你的网页已经成功部署了！</p>
-                    <p>下一步：把你 MainApp.jsx 里的业务逻辑全部粘贴到这里即可。</p>
+                <div className="app-container">
+                    <h1>🇯🇵 日本天气导航</h1>
+                    
+                    <div className="search-box">
+                        <input 
+                            type="text" 
+                            placeholder="输入城市拼音 (如: Kyoto)" 
+                            onKeyDown={(e) => e.key === 'Enter' && fetchWeather(e.target.value)}
+                            onChange={(e) => setCity(e.target.value)}
+                        />
+                        <button onClick={() => fetchWeather(city)}>検索</button>
+                    </div>
+
+                    {loading ? <p>読み込み中...</p> : weather && (
+                        <div className="weather-info">
+                            <h2 style={{margin: 0}}>{weather.name}</h2>
+                            <p style={{color: '#666'}}>{weather.weather[0].description}</p>
+                            <div className="temp">{Math.round(weather.main.temp)}°C</div>
+                            
+                            <div className="advice-card">
+                                <span className="advice-header">💡 今日の服装アドバイス:</span>
+                                <div>{getAdvice(weather.main.temp)}</div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
