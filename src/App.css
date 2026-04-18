@@ -1,0 +1,7 @@
+.app-container { font-family: 'Helvetica Neue', Arial, sans-serif; text-align: center; padding: 20px; color: #333; }
+.weather-card { background: #f0f4f8; border-radius: 15px; padding: 20px; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.temp { font-size: 3rem; font-weight: bold; color: #007aff; }
+.advice-section { background: #fff; padding: 10px; border-radius: 10px; margin-top: 15px; border-left: 5px solid #ff9500; }
+.warning { color: #ff3b30; font-weight: bold; margin-top: 10px; }
+input { padding: 10px; border-radius: 5px; border: 1px solid #ccc; width: 200px; }
+button { padding: 10px 20px; margin-left: 10px; border-radius: 5px; background: #007aff; color: #fff; border: none; cursor: pointer; }
